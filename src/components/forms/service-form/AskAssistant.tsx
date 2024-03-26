@@ -16,7 +16,8 @@ function AskAssistant(props: AskAssistantProps) {
 
   const askAssistant = async () => {
     setIsAwaitingResponse(true)
-    setQuestion(inputValue)
+    const questionContent = inputValue
+    setQuestion(questionContent)
     setAnswer('')
     setInputValue('')
 
@@ -28,7 +29,7 @@ function AskAssistant(props: AskAssistantProps) {
       },
       params: {
         'model': props.aiModel,
-        'prompt': question
+        'prompt': questionContent
       }
     })
 
