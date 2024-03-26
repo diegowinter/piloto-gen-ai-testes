@@ -21,7 +21,7 @@ function Drawer(props: DrawerProps) {
   }
 
   return (
-    <div className="bg-slate-950 flex flex-col flex-shrink-0 w-[300px] h-full ">
+    <div className="bg-slate-100 dark:bg-slate-950 flex flex-col flex-shrink-0 w-[300px] h-full">
       {props.showMenuButton && (
         <div className="p-4 block md:hidden" onClick={props.onClickMenu}>
           <div className="flex flex-row">
@@ -39,7 +39,7 @@ function Drawer(props: DrawerProps) {
           Nova consulta
         </Button>
       </div>
-      <div className="flex flex-col flex-grow overflow-y-auto px-2"> {/* Possivelmente novo componente */}
+      <div className="flex flex-col px-2 overflow-y-auto"> {/* Possivelmente novo componente */}
         <span className="opacity-70 text-sm mb-2 px-2 mt-6">Últimas consultas</span>
         {[...servicesState ?? []].reverse().map((service) => (
           <ServiceHistoryItem

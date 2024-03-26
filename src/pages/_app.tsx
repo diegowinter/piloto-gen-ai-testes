@@ -8,10 +8,12 @@ import { ServicesProvider } from "@/context/ServiceContext";
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <NextUIProvider>
-      <ThemeProvider>
+      <ThemeProvider attribute="class" defaultTheme="system">
         <ServicesProvider>
           <Layout>
-            <Component {...pageProps} />
+            <main className="light dark:dark">
+              <Component {...pageProps} />
+            </main>
           </Layout>
         </ServicesProvider>
       </ThemeProvider>

@@ -7,7 +7,7 @@ interface HeaderProps {
 
 function Header(props: HeaderProps) {
   return (
-    <div className="h-[80px] bg-gradient-to-b from-slate-900 to-transparent p-4 flex flex-row items-center justify-between">
+    <div className="h-[80px] bg-gradient-to-b from-slate-500 dark:from-slate-900 to-transparent p-4 flex flex-row items-center justify-between">
       <div className="flex flex-row items-center">
         <div className="block md:hidden" onClick={props.onClickMenu}>
           {MenuIcon}

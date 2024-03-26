@@ -16,6 +16,7 @@
     "next": "14.1.4",
     "next-themes": "^0.3.0",
     "react": "^18",
+    "react-audio-voice-recorder": "^2.2.0",
     "react-dom": "^18",
     "react-markdown": "^9.0.1",
     "use-file-picker": "^2.1.1",

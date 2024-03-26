@@ -1,4 +1,4 @@
-import NewServiceForm from "@/components/forms/ServiceForm";
+import NewServiceForm from "@/components/forms/service-form/ServiceForm";
 import { ServicesContext } from "@/context/ServiceContext";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
