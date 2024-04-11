@@ -7,6 +7,8 @@ import { ServicesContext } from "@/context/ServiceContext";
 import Markdown from "react-markdown";
 import AskAssistant from "./AskAssistant";
 import { AudioRecorder, useAudioRecorder } from "react-audio-voice-recorder";
+import { API_URL } from "@/constants";
+import { v4 as uuidv4 } from 'uuid';
 
 interface ServiceFormProps {
   serviceData?: ServiceFormData
@@ -61,8 +63,17 @@ function ServiceForm(props: ServiceFormProps) {
       const fileBlob = new Blob([filesContent[0].content], { type: 'audio/mpeg' });
       formData.append('file', fileBlob, filesContent[0].name)
     } else {
-      formData.append('file', recordedAudio!, 'audio.weba')
+      console.log('Gravação de áudio.')
+      formData.append('file', recordedAudio!, `audio_${uuidv4()}.weba`)
     }
+
+    // const audioUrl = URL.createObjectURL(recordedAudio!)
+    // const link = document.createElement('a')
+    // link.href = audioUrl
+    // link.download = 'audio.webm'
+    // document.body.appendChild(link)
+    // link.click()
+    // link.remove()
 
     const config = {
       headers: {
@@ -73,12 +84,16 @@ function ServiceForm(props: ServiceFormProps) {
       }
     }
 
-    const resTranscription = await axios.post("https://3.22.222.8.nip.io/transcribe", formData, config)
+    const resTranscription = await axios.post(`${API_URL}/transcribe`, formData, config)
+
+    console.log('Transcrição:', resTranscription.data)
 
     setStep('summary')
 
-    const resSummary = await axios.post("https://3.22.222.8.nip.io/summarize_text", {
-      text: resTranscription.data.transcript
+    const resSummary = await axios.post(`${API_URL}/summarize_text`, {
+      text: newServiceForm.transcriptionModel === 'gladia'
+        ? resTranscription.data.transcript.transcript
+        : resTranscription.data.transcript
     }, {
       headers: {
         'Content-Type': 'application/json'
@@ -91,7 +106,9 @@ function ServiceForm(props: ServiceFormProps) {
     if (resTranscription.status == 200 && resSummary.status == 200) {
       const newService = {
         ...newServiceForm,
-        'audioTranscription': resTranscription.data.transcript,
+        'audioTranscription': newServiceForm.transcriptionModel === 'gladia'
+          ? resTranscription.data.transcript.transcript
+          : resTranscription.data.transcript,
         'transcriptionSummary': resSummary.data
       }
 
@@ -131,6 +148,7 @@ function ServiceForm(props: ServiceFormProps) {
           >
             <SelectItem value="gladia" key="gladia">Gladia</SelectItem>
             <SelectItem value="whisper" key="whisper">Whisper</SelectItem>
+            {/* <SelectItem value="google_speech" key="google_speech">Google Speech</SelectItem> */}
           </Select>
           <Select
             label="Modelo de IA"
@@ -185,7 +203,9 @@ function ServiceForm(props: ServiceFormProps) {
                   {filesContent[0] ? (
                     <span>{filesContent[0].name}</span>
                   ) : (
-                    <span>Gravação de áudio ({audioDuration}s)</span>
+                    <div>
+                      <span>Gravação de áudio ({audioDuration}s)</span>
+                    </div>
                   )}
                 </span>
               </div>
@@ -210,7 +230,7 @@ function ServiceForm(props: ServiceFormProps) {
                       if (!recorderControls.isRecording) {
                         recorderControls.startRecording()
                       } else {
-                        console.log("Parada solicitada!")
+                        // console.log("Parada solicitada!")
                         setAudioDuration(recorderControls.recordingTime)
                         recorderControls.stopRecording()
                         setHasRecordedAudio(true)

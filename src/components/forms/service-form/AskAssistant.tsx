@@ -1,4 +1,5 @@
 import { PaperAirplaneIcon } from "@/components/icons";
+import { API_URL } from "@/constants";
 import { Button, Input, Skeleton } from "@nextui-org/react";
 import axios from "axios";
 import { useState } from "react";
@@ -21,7 +22,7 @@ function AskAssistant(props: AskAssistantProps) {
     setAnswer('')
     setInputValue('')
 
-    const res = await axios.post("https://3.22.222.8.nip.io/summarize_text", {
+    const res = await axios.post(`${API_URL}/summarize_text`, {
       text: props.audioTranscription
     }, {
       headers: {
