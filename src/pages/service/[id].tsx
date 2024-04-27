@@ -7,7 +7,7 @@ function ServiceDetails() {
   const router = useRouter()
   const { id } = router.query;
 
-  const { getServiceById } = useContext(ServicesContext);
+  const { servicesState, getServiceById } = useContext(ServicesContext);
   const [serviceData, setServiceData] = useState<ServiceFormData | undefined>(undefined)
 
   useEffect(() => {
@@ -17,7 +17,7 @@ function ServiceDetails() {
         data = {
           transcriptionModel: 'gladia',
           aiModel: 'GPT',
-          title: '',
+          title: servicesState!.length > 0 ? `Consulta ${servicesState!.length + 1}` : 'Nova consulta',
           description: '',
           type: 'clinico-geral'
         }

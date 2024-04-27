@@ -1,14 +1,14 @@
 import { AddIcon, SparklesIcon } from "@/components/icons";
 import { Button } from "@nextui-org/react";
+import { nanoid } from "nanoid";
 import { useRouter } from "next/router";
-import { v4 as uuidv4 } from 'uuid';
 
 function Home() {
 
   const router = useRouter()
 
   const newService = () => {
-    router.push(`/service/${uuidv4()}`)
+    router.push(`/service/${nanoid(10)}`)
   }
 
   return (

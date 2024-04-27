@@ -2,9 +2,9 @@ import { Button } from "@nextui-org/react";
 import { AddIcon, ChevronLeftIcon } from "../icons";
 import ServiceHistoryItem from "../common/ServiceHistoryItem";
 import { useRouter } from "next/router";
-import { v4 as uuidv4 } from 'uuid';
 import { useContext } from "react";
 import { ServicesContext } from "@/context/ServiceContext";
+import { nanoid } from "nanoid";
 
 interface DrawerProps {
   showMenuButton?: boolean;
@@ -17,7 +17,7 @@ function Drawer(props: DrawerProps) {
   const { servicesState } = useContext(ServicesContext)
 
   const newService = () => {
-    router.push(`/service/${uuidv4()}`)
+    router.push(`/service/${nanoid(10)}`)
   }
 
   return (

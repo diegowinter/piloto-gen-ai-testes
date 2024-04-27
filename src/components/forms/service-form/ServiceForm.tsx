@@ -1,14 +1,10 @@
-import { Button, Card, CardBody, Input, Progress, Select, SelectItem, Tab, Tabs, Textarea } from "@nextui-org/react"
-import { MicIcon, SparklesIcon, UploadIcon } from "../../icons";
-import { useFilePicker } from "use-file-picker";
+import { Button, Input, Progress, Select, SelectItem, Textarea } from "@nextui-org/react"
 import { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { ServicesContext } from "@/context/ServiceContext";
-import Markdown from "react-markdown";
-import AskAssistant from "./AskAssistant";
-import { AudioRecorder, useAudioRecorder } from "react-audio-voice-recorder";
 import { API_URL } from "@/constants";
-import { v4 as uuidv4 } from 'uuid';
+import AudioTranscriptionContainer from "@/components/service/AudioTranscriptionContainer";
+import Handbook from "@/components/service/Handbook";
 
 interface ServiceFormProps {
   serviceData?: ServiceFormData
@@ -17,7 +13,8 @@ interface ServiceFormProps {
 function ServiceForm(props: ServiceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isHandbookGenerated, setIsHandbookGenerated] = useState(false)
-  const [step, setStep] = useState('transcription')
+
+  const [liveTranscription, setLiveTranscription] = useState('')
 
   const { saveService } = useContext(ServicesContext);
 
@@ -29,71 +26,36 @@ function ServiceForm(props: ServiceFormProps) {
     type: 'clinico-geral'
   })
 
-  const { openFilePicker, filesContent, loading, clear } = useFilePicker({
-    accept: '.mp3, .wav',
-    multiple: false,
-    readAs: 'ArrayBuffer'
-  })
 
-  const [audioDuration, setAudioDuration] = useState(0)
-  const [hasRecordedAudio, setHasRecordedAudio] = useState(false)
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
-
-  const recorderControls = useAudioRecorder()
-  const processRecordedAudio = (blob: Blob) => {
-    console.log('Processando áudio gravado...')
-    console.log('Tamanho do arquivo:', blob.size)
-
-    setRecordedAudio(blob)
+  /**
+   * Função para atualizar o estado da transcrição em tempo real.
+   * @param transcription Transcrição do áudio que está sendo capturado.
+   */
+  const updateLiveTranscription = (transcription: string) => {
+    setLiveTranscription(transcription)
   }
 
+
+  /**
+   * Função para atualizar o estado do formulário de consulta.
+   * @param key Chave do campo a ser atualizado.
+   * @param value Valor do campo a ser atualizado.
+   */
   const handleFormEdit = (key: string, value: string) => {
-    setNewServiceForm({
-      ...newServiceForm,
-      [key]: value
-    })
+    setNewServiceForm(prevState => ({
+      ...prevState, [key]: value
+    }))
   }
 
+
+  /**
+   * Função para submeter a consulta para geração do prontuário.
+   */
   const submitService = async () => {
     setIsSubmitting(true)
 
-    const formData = new FormData();
-
-    if (filesContent[0]) {
-      const fileBlob = new Blob([filesContent[0].content], { type: 'audio/mpeg' });
-      formData.append('file', fileBlob, filesContent[0].name)
-    } else {
-      console.log('Gravação de áudio.')
-      formData.append('file', recordedAudio!, `audio_${uuidv4()}.weba`)
-    }
-
-    // const audioUrl = URL.createObjectURL(recordedAudio!)
-    // const link = document.createElement('a')
-    // link.href = audioUrl
-    // link.download = 'audio.webm'
-    // document.body.appendChild(link)
-    // link.click()
-    // link.remove()
-
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      params: {
-        'transcriber': newServiceForm.transcriptionModel,
-      }
-    }
-
-    const resTranscription = await axios.post(`${API_URL}/transcribe`, formData, config)
-
-    console.log('Transcrição:', resTranscription.data)
-
-    setStep('summary')
-
     const resSummary = await axios.post(`${API_URL}/summarize_text`, {
-      text: newServiceForm.transcriptionModel === 'gladia'
-        ? resTranscription.data.transcript.transcript
-        : resTranscription.data.transcript
+      text: liveTranscription
     }, {
       headers: {
         'Content-Type': 'application/json'
@@ -103,12 +65,10 @@ function ServiceForm(props: ServiceFormProps) {
       }
     })
 
-    if (resTranscription.status == 200 && resSummary.status == 200) {
+    if (resSummary.status == 200) {
       const newService = {
         ...newServiceForm,
-        'audioTranscription': newServiceForm.transcriptionModel === 'gladia'
-          ? resTranscription.data.transcript.transcript
-          : resTranscription.data.transcript,
+        'audioTranscription': liveTranscription,
         'transcriptionSummary': resSummary.data
       }
 
@@ -121,17 +81,17 @@ function ServiceForm(props: ServiceFormProps) {
   }
 
   useEffect(() => {
+    // Se há dados de uma consulta (caso do uso do formulário para exibir uma consulta existente),
+    // preenche o formulário com os dados da consulta.
     if (props.serviceData) {
       setNewServiceForm(props.serviceData)
       setIsHandbookGenerated(!!props.serviceData.transcriptionSummary)
-      clear()
-      setHasRecordedAudio(false)
-      setStep('transcription')
     }
   }, [props.serviceData])
 
   return (
     <div className="flex flex-col h-full w-full" >
+
       {/* Cabeçalho e seletores de modelos */}
       <div className="flex flex-col lg:flex-row justify-between items-center mb-4 ">
         <h1 className="text-3xl w-full lg:w-fit lg:flex-shrink-0 mr-0 lg:mr-6 mb-4 lg:mb-0">
@@ -139,19 +99,7 @@ function ServiceForm(props: ServiceFormProps) {
         </h1>
         <div className="flex flex-row w-full justify-end">
           <Select
-            label="Modelo de transcrição"
-            className="max-w-full lg:max-w-xs mr-2"
-            selectedKeys={[newServiceForm.transcriptionModel]}
-            onChange={(e) => handleFormEdit('transcriptionModel', e.target.value)}
-            isDisabled={isHandbookGenerated}
-            isRequired
-          >
-            <SelectItem value="gladia" key="gladia">Gladia</SelectItem>
-            <SelectItem value="whisper" key="whisper">Whisper</SelectItem>
-            {/* <SelectItem value="google_speech" key="google_speech">Google Speech</SelectItem> */}
-          </Select>
-          <Select
-            label="Modelo de IA"
+            label="Modelo LLM"
             className="max-w-xs ml-2"
             selectedKeys={[newServiceForm.aiModel]}
             onChange={(e) => handleFormEdit('aiModel', e.target.value)}
@@ -163,6 +111,7 @@ function ServiceForm(props: ServiceFormProps) {
           </Select>
         </div>
       </div>
+
       {/* Formulário de dados da consulta */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
         <Input
@@ -191,129 +140,30 @@ function ServiceForm(props: ServiceFormProps) {
           onChange={(e) => handleFormEdit('description', e.target.value)}
         />
       </div>
-      {/* Botões de upload e captura de áudio */}
-      <div className="bg-slate-300 dark:bg-slate-900 w-full p-3 my-6 rounded-xl">
-        {!isHandbookGenerated ? (
-          <div className="">
-            <span className="text-xs opacity-80">Gravação da consulta</span>
-            {(filesContent[0] || hasRecordedAudio) && !isSubmitting && (
-              <div className="flex flex-col items-center justify-center h-full my-6">
-                <span className="text-xl font-bold mb-2">Arquivo selecionado</span>
-                <span className="bg-slate-950 px-2 py-1 rounded-lg">
-                  {filesContent[0] ? (
-                    <span>{filesContent[0].name}</span>
-                  ) : (
-                    <div>
-                      <span>Gravação de áudio ({audioDuration}s)</span>
-                    </div>
-                  )}
-                </span>
-              </div>
-            )}
-            {loading && (
-              <div>Carregando...</div>
-            )}
-            {!filesContent[0] && !hasRecordedAudio && !loading && !isSubmitting && (
-              <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch justify-around my-6">
-                <div
-                  className="flex flex-col items-center justify-center bg-slate-200 dark:bg-slate-950 p-6 w-full mx-4 rounded-lg cursor-pointer"
-                  onClick={() => openFilePicker()}
-                >
-                  {UploadIcon}
-                  <span className="mt-3">Carregar arquivo</span>
-                </div>
-                <div className="flex flex-col items-center bg-slate-200 dark:bg-slate-950 p-6 w-full mt-4 rounded-lg cursor-pointer">
-                  {MicIcon}
-                  <span className="my-3">{recorderControls.isRecording ? `Gravando (${recorderControls.recordingTime}s)` : 'Capturar áudio'}</span>
-                  <Button
-                    onClick={() => {
-                      if (!recorderControls.isRecording) {
-                        recorderControls.startRecording()
-                      } else {
-                        // console.log("Parada solicitada!")
-                        setAudioDuration(recorderControls.recordingTime)
-                        recorderControls.stopRecording()
-                        setHasRecordedAudio(true)
-                      }
-                    }}
-                  >
-                    {recorderControls.isRecording ? 'Parar' : 'Gravar'}
-                  </Button>
-                </div>
-              </div>
-            )}
-            <AudioRecorder
-              onRecordingComplete={(blob) => {
-                processRecordedAudio(blob)
-              }}
-              recorderControls={recorderControls}
-              classes={{
-                AudioRecorderClass: 'recorder',
-                AudioRecorderTimerClass: 'display-none',
-                AudioRecorderStatusClass: 'display-none',
-                AudioRecorderStartSaveClass: 'display-none',
-                AudioRecorderPauseResumeClass: 'display-none',
-                AudioRecorderDiscardClass: 'display-none',
-              }}
-            />
-            {isSubmitting && (
-              <div className="flex flex-col h-full w-full items-center justify-center my-6">
-                <Progress size="sm" isIndeterminate aria-label="Loading..." className="max-w-sm mb-4" />
-                <span>{`${step === 'transcription' ? 'Transcrevendo áudio' : 'Gerando prontuário'}. Por favor, aguarde.`}</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex w-full h-full flex-col">
-            <Tabs aria-label="Options">
-              <Tab
-                key="handbook"
-                title={
-                  <div className="flex items-center space-x-2">
-                    {SparklesIcon}
-                    <span>Prontuário gerado</span>
-                  </div>
-                }
-              >
-                <Card>
-                  <CardBody>
-                    <div className="prose dark:prose-invert max-w-none">
-                      {/* {newServiceForm.transcriptionSummary} */}
-                      <Markdown>{newServiceForm.transcriptionSummary}</Markdown>
-                    </div>
-                  </CardBody>
-                </Card>
-              </Tab>
-              <Tab key="ask-ai" title="Pergunte à IA">
-                <Card>
-                  <CardBody>
-                    <AskAssistant
-                      audioTranscription={newServiceForm.audioTranscription!}
-                      aiModel={newServiceForm.aiModel}
-                    />
-                  </CardBody>
-                </Card>
-              </Tab>
-              <Tab key="transcription" title="Transcrição original">
-                <Card>
-                  <CardBody>
-                    {newServiceForm.audioTranscription}
-                  </CardBody>
-                </Card>
-              </Tab>
-            </Tabs>
-          </div>
-        )}
-      </div>
-      {/* Botão de submissão do formulário */}
+
+      {/* Captura da consulta ou exibição do prontuário gerado */}
+      {!isHandbookGenerated ? (
+        <AudioTranscriptionContainer updateTranscript={updateLiveTranscription} />
+      ) : (
+        <Handbook serviceData={newServiceForm} />
+      )}
+
+      {isSubmitting && (
+        <div className="flex flex-col h-full w-full items-center justify-center my-6">
+          <Progress size="sm" isIndeterminate aria-label="Loading..." className="max-w-sm mb-4" />
+          <span>Gerando prontuário. Por favor, aguarde.</span>
+        </div>
+      )}
+
+      {/* Ações do formulário */}
       <div className="flex flex-row w-full justify-end pb-4">
-        <Button variant="light" className="h-8">Cancelar</Button>
         <Button
           className="h-8 ml-4"
           onClick={submitService}
           color="primary"
+          isDisabled={isSubmitting || liveTranscription === ''}
         >
-          Gerar prontuário
+          {isHandbookGenerated ? 'Salvar alterações' : 'Gerar prontuário'}
         </Button>
       </div>
     </div>
