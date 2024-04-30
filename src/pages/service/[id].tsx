@@ -17,7 +17,7 @@ function ServiceDetails() {
         data = {
           transcriptionModel: 'gladia',
           aiModel: 'GPT',
-          title: servicesState!.length > 0 ? `Consulta ${servicesState!.length + 1}` : 'Nova consulta',
+          title: `Consulta ${servicesState?.length ?? 0 + 1}`,
           description: '',
           type: 'clinico-geral'
         }

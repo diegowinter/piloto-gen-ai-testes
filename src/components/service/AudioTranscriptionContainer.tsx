@@ -12,7 +12,8 @@ function AudioTranscriptionContainer(props: AudioTranscriptionContainerProps) {
     transcript,
     listening,
     resetTranscript,
-    browserSupportsSpeechRecognition
+    browserSupportsSpeechRecognition,
+    isMicrophoneAvailable
   } = useSpeechRecognition()
 
   // Inicializa ou interrompe a captura de áudio
@@ -71,6 +72,13 @@ function AudioTranscriptionContainer(props: AudioTranscriptionContainerProps) {
               </div>
             </Button>
           </div>
+        )}
+
+        {/* Exibição do status de permissão de microfone */}
+        {!isMicrophoneAvailable && (
+          <span className="text-sm opacity-70 text-red-400 pt-4">
+            Pode ser que seu microfone esteja indisponível. Atualize a página e permita o acesso ao microfone ou verifique as permissões da página.
+          </span>
         )}
       </div>
     </div>
